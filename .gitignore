@@ -1,2 +1,5 @@
 .env
 env.zip
+Testing/
+simulation_log.json
+simulation_state.json

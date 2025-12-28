@@ -1,15 +1,19 @@
 import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 # ================= CONFIGURATION =================
-# Use the same credentials you used before
-CLIENT_ID = "1000.X8QFPJNB2WIW9G0SMN9JWTHJ9G795K"
-CLIENT_SECRET = "59accf3361bfbd7a19bb84ee9b9cb0a221d7b9e334"
-REFRESH_TOKEN = "1000.8f65edce81b2d97785e6a2fa048a47db.2e16a0811a8dab5f893554f4c556dedc" 
+CLIENT_ID = os.getenv("ZOHO_CLIENT_ID")
+CLIENT_SECRET = os.getenv("ZOHO_CLIENT_SECRET")
+REFRESH_TOKEN = os.getenv("ZOHO_REFRESH_TOKEN") 
 # =================================================
 
 def get_access_token():
     # 1. Get a fresh Access Token first
-    url = "https://accounts.zoho.in/oauth/v2/token" # Note: .in for India
+    url = "https://accounts.zoho.in/oauth/v2/token"
     params = {
         "refresh_token": REFRESH_TOKEN,
         "client_id": CLIENT_ID,
@@ -26,7 +30,6 @@ def find_account_id():
         return
 
     # 2. Ask Zoho for Account Details
-    # Note: .in for India
     api_url = "https://mail.zoho.in/api/accounts"
     
     headers = {
