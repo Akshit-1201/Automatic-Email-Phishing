@@ -3,3 +3,6 @@ env.zip
 Testing/
 simulation_log.json
 simulation_state.json
+__pycache__/
+components/__pycache__
+services/__pycache__
