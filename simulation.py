@@ -32,11 +32,14 @@ STATE_FILE = "simulation_state.json"
 LOG_FILE = "simulation_log.json"
 DEBUG_MODE = False  # Set to True for detailed debugging
 
+# Google Form URL for verification
+GOOGLE_FORM_URL = os.getenv("GOOGLE_FORM_URL")
+
 # ================= HELPER FUNCTIONS =================
 
 def print_info(message: str):
     """Print info message"""
-    print(f"ℹ️  {message}")
+    print(f"ℹ️ {message}")
 
 def print_success(message: str):
     """Print success message"""
@@ -441,19 +444,46 @@ class EmailTemplates:
         subject = "Important: Account Security Verification Required"
         body = """
         <html>
-        <body style="font-family: Arial, sans-serif;">
-            <p>Dear User,</p>
-            
-            <p>Our security team has detected unusual activity on your account from an unrecognized device.</p>
-            
-            <p>As part of our routine security measures, we need to verify your account information to ensure your data remains protected.</p>
-            
-            <p><strong>Please reply to this email</strong> if you would like more information about this security alert.</p>
-            
-            <p>Thank you for your cooperation in keeping your account secure.</p>
-            
-            <p>Best regards,<br>
-            Security Team</p>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+                <h2 style="color: #1a73e8; margin-top: 0;">🔒 Security Alert</h2>
+                
+                <p>Dear User,</p>
+                
+                <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>⚠️ Unusual Activity Detected</strong></p>
+                    <p style="margin: 5px 0 0 0;">Our security team has detected unusual activity on your account from an unrecognized device.</p>
+                </div>
+                
+                <p>As part of our routine security measures, we need to verify your account information to ensure your data remains protected.</p>
+                
+                <div style="background-color: #ffffff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 0; font-size: 14px;"><strong>📍 Detection Details:</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Unrecognized login attempt</li>
+                        <li>Unusual location access</li>
+                        <li>Time: Within last 24 hours</li>
+                    </ul>
+                </div>
+                
+                <p><strong>Please reply to this email</strong> if you would like more information about this security alert or if you did not authorize this activity.</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <p style="background-color: #e8f5e9; color: #2e7d32; padding: 12px; border-radius: 5px; font-size: 14px;">
+                        🛡️ Your account security is our top priority
+                    </p>
+                </div>
+                
+                <p style="font-size: 13px; color: #999; border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px;">
+                    This is an automated security notification. If you believe this was sent in error, please contact support immediately.
+                </p>
+                
+                <p style="margin-top: 20px;">
+                    Thank you for your cooperation in keeping your account secure.<br><br>
+                    Best regards,<br>
+                    <strong>Security Team</strong>
+                </p>
+            </div>
         </body>
         </html>
         """
@@ -462,50 +492,132 @@ class EmailTemplates:
     @staticmethod
     def reminder_email(retry_count: int) -> tuple:
         """Reminder email for non-responders"""
-        subject = f"REMINDER {retry_count}: Action Required - Account Security"
+        urgency_colors = {
+            1: {"bg": "#fff3cd", "border": "#ffc107", "text": "#856404"},
+            2: {"bg": "#ffe5e5", "border": "#ff9800", "text": "#c62828"},
+            3: {"bg": "#ffcdd2", "border": "#d32f2f", "text": "#b71c1c"}
+        }
+        
+        colors = urgency_colors.get(retry_count, urgency_colors[3])
+        
+        subject = f"{'🔴 ' * retry_count}REMINDER {retry_count}: Action Required - Account Security"
+        
         body = f"""
         <html>
-        <body style="font-family: Arial, sans-serif;">
-            <p>Dear User,</p>
-            
-            <p><strong style="color: red;">This is reminder #{retry_count}</strong></p>
-            
-            <p>We still haven't received your response regarding the unusual activity detected on your account.</p>
-            
-            <p>Your account security is at risk. Please reply immediately to verify your account status.</p>
-            
-            <p>Failure to respond may result in temporary account suspension.</p>
-            
-            <p>Best regards,<br>
-            Security Team</p>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+                <h2 style="color: #d32f2f; margin-top: 0;">⚠️ URGENT: Security Verification Overdue</h2>
+                
+                <div style="background-color: {colors['bg']}; padding: 20px; border-left: 5px solid {colors['border']}; margin: 20px 0;">
+                    <p style="margin: 0; color: {colors['text']}; font-size: 16px; font-weight: bold;">
+                        🔔 This is reminder #{retry_count} of {MAX_RETRIES}
+                    </p>
+                </div>
+                
+                <p>Dear User,</p>
+                
+                <p><strong>We still haven't received your response</strong> regarding the unusual activity detected on your account.</p>
+                
+                <div style="background-color: #ffffff; padding: 15px; border: 2px solid #d32f2f; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 0; color: #d32f2f; font-weight: bold;">⏰ TIME-SENSITIVE ALERT</p>
+                    <p style="margin: 10px 0 0 0;">Your account security is at risk. Failure to respond may result in:</p>
+                    <ul style="margin: 10px 0; padding-left: 20px; color: #d32f2f;">
+                        <li>Temporary account suspension</li>
+                        <li>Limited access to services</li>
+                        <li>Additional verification requirements</li>
+                    </ul>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <p style="font-size: 18px; font-weight: bold; color: #d32f2f; margin: 0;">
+                        {"⚠️ " * retry_count}IMMEDIATE ACTION REQUIRED{"⚠️ " * retry_count}
+                    </p>
+                </div>
+                
+                <p><strong>Please reply to this email immediately</strong> to verify your account status and prevent suspension.</p>
+                
+                <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 0; font-size: 13px; color: #1565c0;">
+                        💡 <strong>Quick Response:</strong> Simply reply with "VERIFY" to start the security verification process.
+                    </p>
+                </div>
+                
+                <p style="font-size: 13px; color: #999; border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px;">
+                    This is reminder #{retry_count}                
+                </p>
+                
+                <p style="margin-top: 20px;">
+                    Best regards,<br>
+                    <strong>Security Verification Team</strong>
+                </p>
+            </div>
         </body>
         </html>
         """
         return subject, body
     
     @staticmethod
-    def worried_followup() -> tuple:
-        """Follow-up for worried/curious users"""
-        subject = "Re: Account Security Verification - Next Steps"
-        body = """
+    def worried_followup(google_form_url: str) -> tuple:
+        """Follow-up for worried/curious users with Google Form"""
+        subject = "Re: Account Security Verification - Action Required"
+        body = f"""
         <html>
-        <body style="font-family: Arial, sans-serif;">
-            <p>Thank you for your prompt response.</p>
-            
-            <p>To complete the verification process, we need you to confirm the following:</p>
-            
-            <ul>
-                <li>Your last login location</li>
-                <li>Recent transaction history</li>
-                <li>Current contact information</li>
-            </ul>
-            
-            <p>Please reply with "VERIFIED" if this information is correct, or contact us immediately if you notice any discrepancies.</p>
-            
-            <p><strong>Time-sensitive:</strong> Please respond within 24 hours to avoid account restrictions.</p>
-            
-            <p>Best regards,<br>
-            Security Team</p>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+                <h2 style="color: #d32f2f; margin-top: 0;">Security Verification Required</h2>
+                
+                <p>Dear User,</p>
+                
+                <p>Thank you for your prompt response regarding the unusual activity on your account.</p>
+                
+                <p><strong>To secure your account and prevent temporary suspension, we need you to complete a mandatory security verification.</strong></p>
+                
+                <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                    <p style="margin: 0;"><strong>⚠️ Important:</strong> This verification must be completed within <strong>24 hours</strong>.</p>
+                </div>
+                
+                <p>Please click the button below to access our secure verification form:</p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{google_form_url}" 
+                    style="background-color: #1a73e8; 
+                            color: white; 
+                            padding: 15px 40px; 
+                            text-decoration: none; 
+                            border-radius: 5px; 
+                            font-weight: bold;
+                            display: inline-block;">
+                        🔒 Complete Security Verification
+                    </a>
+                </div>
+                
+                <p style="font-size: 14px; color: #666;">
+                    <strong>What information will be verified:</strong>
+                </p>
+                <ul style="font-size: 14px; color: #666;">
+                    <li>Email address and phone number</li>
+                    <li>Last login date and location</li>
+                    <li>Recent account activity</li>
+                    <li>Device information</li>
+                </ul>
+                
+                <div style="background-color: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>🔗 Verification Link:</strong><br>
+                        <a href="{google_form_url}" style="color: #1a73e8; word-break: break-all;">{google_form_url}</a>
+                    </p>
+                </div>
+                
+                <p style="font-size: 13px; color: #999; border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px;">
+                    This is an automated security message. Please do not reply to this email directly.<br>
+                    For assistance, contact our support team at engagements@xencrypt.io
+                </p>
+                
+                <p style="margin-top: 20px;">
+                    Best regards,<br>
+                    <strong>Security Verification Team</strong>
+                </p>
+            </div>
         </body>
         </html>
         """
@@ -514,57 +626,93 @@ class EmailTemplates:
     @staticmethod
     def dismissive_followup() -> tuple:
         """Follow-up for unbothered/dismissive users"""
-        subject = "URGENT: Your Account Will Be Suspended"
+        subject = "🔴 URGENT: Your Account Will Be Suspended"
         body = """
         <html>
-        <body style="font-family: Arial, sans-serif;">
-            <p><strong style="color: red; font-size: 16px;">FINAL WARNING</strong></p>
-            
-            <p>Due to lack of response, your account is scheduled for suspension in <strong>12 hours</strong>.</p>
-            
-            <p>This is a mandatory security protocol. We have detected:</p>
-            
-            <ul style="color: red;">
-                <li>3 unauthorized login attempts</li>
-                <li>Suspicious transactions pending</li>
-                <li>Outdated security credentials</li>
-            </ul>
-            
-            <p><strong>IMMEDIATE ACTION REQUIRED:</strong> Reply with your verification code to prevent account lockout.</p>
-            
-            <p>This is your last opportunity to secure your account.</p>
-            
-            <p>Security Team</p>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px;">
+                <div style="background-color: #d32f2f; color: white; padding: 20px; border-radius: 5px; margin: -20px -20px 20px -20px;">
+                    <h2 style="margin: 0; font-size: 24px;">⚠️ FINAL WARNING</h2>
+                    <p style="margin: 10px 0 0 0; font-size: 14px;">Immediate Action Required</p>
+                </div>
+                
+                <p>Dear User,</p>
+                
+                <div style="background-color: #ffcdd2; padding: 20px; border-left: 5px solid #d32f2f; margin: 20px 0;">
+                    <p style="margin: 0; color: #b71c1c; font-size: 18px; font-weight: bold;">
+                        ⏰ ACCOUNT SUSPENSION IMMINENT
+                    </p>
+                    <p style="margin: 10px 0 0 0; color: #d32f2f; font-weight: bold;">
+                        Your account is scheduled for suspension in <span style="font-size: 20px;">12 HOURS</span>
+                    </p>
+                </div>
+                
+                <p><strong style="color: #d32f2f;">Due to your lack of response to our previous security alerts,</strong> we have no choice but to initiate emergency security protocols.</p>
+                
+                <div style="background-color: #ffffff; padding: 20px; border: 2px solid #d32f2f; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 0 0 10px 0; font-weight: bold; color: #d32f2f;">🚨 CRITICAL SECURITY ISSUES DETECTED:</p>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background-color: #ffebee;">
+                            <td style="padding: 10px; border: 1px solid #ffcdd2;">❌ 3 unauthorized login attempts</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ffcdd2;">❌ Suspicious transactions pending review</td>
+                        </tr>
+                        <tr style="background-color: #ffebee;">
+                            <td style="padding: 10px; border: 1px solid #ffcdd2;">❌ Outdated security credentials</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ffcdd2;">❌ Multiple failed verification attempts</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #fff3cd; border-radius: 5px;">
+                    <p style="margin: 0; font-size: 20px; font-weight: bold; color: #d32f2f;">
+                        ⚠️⚠️⚠️ IMMEDIATE ACTION REQUIRED ⚠️⚠️⚠️
+                    </p>
+                    <p style="margin: 10px 0 0 0; color: #856404;">
+                        Reply with your verification code NOW to prevent account lockout
+                    </p>
+                </div>
+                
+                <div style="background-color: #e3f2fd; padding: 15px; border-left: 4px solid #1976d2; margin: 20px 0;">
+                    <p style="margin: 0; font-size: 14px;">
+                        <strong>📧 Quick Response Options:</strong>
+                    </p>
+                    <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                        <li>Reply with "URGENT" to speak with a security specialist</li>
+                        <li>Reply with "VERIFY" to start emergency verification</li>
+                        <li>Reply with "HELP" for assistance</li>
+                    </ul>
+                </div>
+                
+                <div style="background-color: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <p style="margin: 0; color: #c62828; font-weight: bold;">
+                        ⏱️ TIME REMAINING: Less than 12 hours
+                    </p>
+                    <p style="margin: 5px 0 0 0; color: #d32f2f; font-size: 13px;">
+                        After this deadline, you will need to contact support directly to regain access. This process may take 5-7 business days.
+                    </p>
+                </div>
+                
+                <p style="font-weight: bold; color: #d32f2f; font-size: 16px;">
+                    This is your last opportunity to secure your account.
+                </p>
+                
+                <p style="font-size: 13px; color: #999; border-top: 1px solid #ddd; padding-top: 15px; margin-top: 30px;">
+                    This is a critical automated security alert. Do not ignore this message.<br>
+                    Reference ID: SEC-{int(datetime.now().timestamp())}
+                </p>
+                
+                <p style="margin-top: 20px;">
+                    <strong>Emergency Security Response Team</strong><br>
+                    Available 24/7
+                </p>
+            </div>
         </body>
         </html>
         """
-        return subject, body
-    
-    @staticmethod
-    def credentials_followup() -> tuple:
-        """Follow-up asking for sensitive information"""
-        subject = "Re: Account Security Verification - Immediate Action Required"
-        body = """
-            <html>
-            <body style="font-family: Arial, sans-serif;">
-                <p>Thank you for your response.</p>
-
-                <p>To complete the security verification, we require additional confirmation.</p>
-
-                <p>Please reply with the following details:</p>
-
-                <ul>
-                    <li>Registered mobile number</li>
-                    <li>Last successful login date</li>
-                    <li>City from which you usually access your account</li>
-                </ul>
-
-                <p><strong>This verification is mandatory</strong> to prevent temporary account suspension.</p>
-
-                <p>Security Team</p>
-            </body>
-            </html>
-            """
         return subject, body
     
 # ======================= SIMULATION ENGINE =====================
@@ -687,7 +835,7 @@ class PhishingSimulation:
                     
                     # Send follow-up
                     if intent == 'worried_curious':
-                        subject, body = self.templates.worried_followup()
+                        subject, body = self.templates.worried_followup(GOOGLE_FORM_URL)
                         followup_type = "Worried/Curious"
                     else:
                         subject, body = self.templates.dismissive_followup()
@@ -753,7 +901,7 @@ class PhishingSimulation:
             
             try:
                 self.state.increment_retry(email)
-                retry_count = user_data['retry_count'] + 1
+                retry_count = user_data['retry_count']
                 
                 subject, body = self.templates.reminder_email(retry_count)
                 self.zoho.send_email(email, subject, body, in_reply_to=user_data['thread_id'])
