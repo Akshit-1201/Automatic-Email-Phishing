@@ -36,9 +36,6 @@ STATE_FILE = "simulation_state.json"
 LOG_FILE = "simulation_log.json"
 DEBUG_MODE = False  # Set to True for detailed debugging
 
-# Google Form URL for verification
-GOOGLE_FORM_URL = os.getenv("GOOGLE_FORM_URL")
-
 # ================= HELPER FUNCTIONS =================
 
 def print_info(message: str):
@@ -483,7 +480,6 @@ class PhishingSimulation:
                 message_id = response.get('data', {}).get('messageId')
                 thread_id = response.get('data', {}).get('threadId', message_id)
                 
-                # Store template_id in user state
                 self.state.add_user(email, message_id, thread_id, template_id, template['name'])
                 
                 self.logger.log('initial_email_sent', {
@@ -813,6 +809,10 @@ def main():
             
             name = input("Template Name: ").strip()
             subject = input("Email Subject: ").strip()
+            print("Credential Form — enter the .env variable name that holds")
+            print("the Google Form URL (e.g. FORM_URL_MY_CUSTOM).")
+            print("Leave blank to skip.")
+            form_env_var = input("  .env variable name: ").strip()
             
             print("\nEnter email body HTML (type 'END' on a new line when done):")
             body_lines = []
@@ -824,8 +824,14 @@ def main():
             body_html = '\n'.join(body_lines)
             
             if name and subject and body_html:
-                template_id = sim.template_service.save_custom_template(name, subject, body_html)
+                template_id = sim.template_service.save_custom_template(name, subject, body_html, form_env_var)
                 print_success(f"Custom template created with ID: {template_id}")
+                if form_env_var:
+                    url_value = os.getenv(form_env_var, "")
+                    if url_value:
+                        print_success(f"Form URL resolved from {form_env_var}")
+                    else:
+                        print_warning(f"{form_env_var} is not set in .env — add it before running the simulation")
                 
                 # Refresh templates list
                 templates = sim.template_service.list_templates()

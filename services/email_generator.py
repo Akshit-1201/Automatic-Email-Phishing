@@ -10,7 +10,6 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-2.5-flash"
-GOOGLE_FORM_URL = os.getenv("GOOGLE_FORM_URL")
 
 class EmailGenerator:
     """LLM-powered email generator for phishing simulation follow-ups"""
@@ -37,6 +36,9 @@ class EmailGenerator:
         if not template:
             return self._get_fallback_followup(intent)
         
+        # Get credential form URL from template
+        credential_form_url = template.get('credential_form_url', '')
+        
         # Build prompt
         prompt = self._build_followup_prompt(template, user_response, intent)
         
@@ -44,14 +46,14 @@ class EmailGenerator:
         response = self._call_gemini_with_retry(prompt)
         
         if not response:
-            return self._get_fallback_followup(intent)
+            return self._get_fallback_followup(intent, credential_form_url)
         
         # Parse response
         email_data = self._parse_email_response(response)
         
         # Inject credential link if needed
-        if intent == 'worried_curious' and GOOGLE_FORM_URL:
-            email_data['body_html'] = self._inject_credential_link(email_data['body_html'])
+        if intent == 'worried_curious' and credential_form_url:
+            email_data['body_html'] = self._inject_credential_link(email_data['body_html'], credential_form_url)
         
         return email_data
     
@@ -417,20 +419,20 @@ Generate the reminder email now (valid JSON only):"""
             print(f"⚠️  Using fallback template")
             return self._get_fallback_followup('worried_curious')
     
-    def _inject_credential_link(self, body_html: str) -> str:
+    def _inject_credential_link(self, body_html: str, credential_form_url: str) -> str:
         """Inject credential capture link into email body"""
         
-        if not GOOGLE_FORM_URL:
+        if not credential_form_url:
             return body_html
         
         # Look for placeholder
         if '{CREDENTIAL_LINK}' in body_html:
-            return body_html.replace('{CREDENTIAL_LINK}', GOOGLE_FORM_URL)
+            return body_html.replace('{CREDENTIAL_LINK}', credential_form_url)
         
         # If no placeholder, inject before closing body tag
         button_html = f'''
 <div style="text-align: center; margin: 30px 0;">
-    <a href="{GOOGLE_FORM_URL}" 
+    <a href="{credential_form_url}" 
        style="background-color: #1a73e8; 
               color: white; 
               padding: 15px 40px; 
@@ -448,21 +450,26 @@ Generate the reminder email now (valid JSON only):"""
         else:
             return body_html + button_html
     
-    def _get_fallback_followup(self, intent: str) -> Dict[str, str]:
+    def _get_fallback_followup(self, intent: str, credential_form_url: str = '') -> Dict[str, str]:
         """Return fallback email if LLM fails"""
         
         if intent == 'worried_curious':
-            return {
-                'subject': 'Re: Security Verification Required',
-                'body_html': '''<html><body style="font-family: Arial, sans-serif;">
+            body = '''<html><body style="font-family: Arial, sans-serif;">
                 <p>Dear User,</p>
-                <p>Thank you for your prompt response. To resolve this security issue, please complete the verification process.</p>
+                <p>Thank you for your prompt response. To resolve this issue, please complete the verification process.</p>
                 <p>Click the button below to verify your account:</p>
                 <div style="text-align: center; margin: 20px;">
                     <a href="{CREDENTIAL_LINK}" style="background-color: #1a73e8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Verify Account</a>
                 </div>
                 <p>Best regards,<br>Security Team</p>
                 </body></html>'''
+            
+            if credential_form_url:
+                body = body.replace('{CREDENTIAL_LINK}', credential_form_url)
+            
+            return {
+                'subject': 'Re: Security Verification Required',
+                'body_html': body
             }
         else:
             return {
